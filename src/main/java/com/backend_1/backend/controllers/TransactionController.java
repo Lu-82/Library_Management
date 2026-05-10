@@ -22,16 +22,30 @@ public class TransactionController {
     @Autowired
     private BookRepository bookRepository;
 
-    @PostMapping("/issue")
-    public Transaction issueBook(@RequestParam Long userId, @RequestParam Long bookId) {
-        // 1. Find the User and Book (we use .orElseThrow in case the ID is wrong)
-        User user = userRepository.findById(userId).orElseThrow();
+    @GetMapping
+    public java.util.List<Transaction> getAllTransactions() {
+        return transactionService.getAllTransactions();
+    }
+
+    @GetMapping("/my-history")
+    public java.util.List<Transaction> getMyHistory(org.springframework.security.core.Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return transactionService.getTransactionsByUserId(user.getId());
+    }
+
+    @PostMapping("/borrow/{bookId}")
+    public Transaction issueBook(@PathVariable Long bookId, org.springframework.security.core.Authentication authentication) {
+        // 1. Find the User from Authentication
+        User user = (User) authentication.getPrincipal();
+        
+        // 2. Find the Book
         Book book = bookRepository.findById(bookId).orElseThrow();
 
-        // 2. Pass them to the service to do the heavy lifting
+        // 3. Pass them to the service to do the heavy lifting
         return transactionService.issueBook(user, book);
     }
-    @PutMapping("/return/{id}")
+
+    @PostMapping("/return/{id}")
     public Transaction returnBook(@PathVariable Long id) {
         // We use the ID from the URL to tell the service which record to update
         return transactionService.returnBook(id);

@@ -65,4 +65,12 @@ public class TransactionService {
 
         return transactionRepository.save(transaction);
     }
+
+    public java.util.List<Transaction> getAllTransactions() {
+        return transactionRepository.findAll();
+    }
+
+    public java.util.List<Transaction> getTransactionsByUserId(Long userId) {
+        return transactionRepository.findByUserId(userId);
+    }
 }

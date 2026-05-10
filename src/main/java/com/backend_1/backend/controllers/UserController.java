@@ -35,16 +35,26 @@ public class UserController {
 
     @PostMapping("/login")
     public String login(@RequestBody LoginRequest request) {
-        // 1. Ask Spring Security to verify the credentials
+        // 1. Authenticate the user
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
-        // 2. If successful, generate the token
+        // 2. If authentication is successful
         if (authentication.isAuthenticated()) {
-            return jwtService.generateToken(request.getEmail());
+            // Retrieve the User object from the authentication result
+            // Note: This works because your User entity implements UserDetails
+            User user = (User) authentication.getPrincipal();
+
+            // 3. Generate token using the full User object (so role is included)
+            return jwtService.generateToken(user);
         } else {
             throw new UsernameNotFoundException("Invalid user request");
         }
+    }
+
+    @org.springframework.web.bind.annotation.GetMapping
+    public java.util.List<User> getAllUsers() {
+        return userService.getAllUsers();
     }
 }

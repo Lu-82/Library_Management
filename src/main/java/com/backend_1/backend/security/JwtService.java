@@ -9,12 +9,13 @@ import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
 
-    // 1. Use a Base64 encoded string (at least 256-bit)
     private static final String SECRET_KEY = "VGhpc0lzQVN1cGVyU2VjdXJlSldUU2VjcmV0S2V5MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMg==";
 
     public String extractUsername(String token) {
@@ -26,21 +27,34 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
-    // 2. Updated to modern parserBuilder style
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .verifyWith(getSignInKey()) // Replaces setSigningKey
+                .verifyWith(getSignInKey())
                 .build()
-                .parseSignedClaims(token)   // Replaces parseClaimsJws
-                .getPayload();             // Replaces getBody
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
-    public String generateToken(String email) {
+    // UPDATED: Now takes UserDetails to extract the role and name
+    public String generateToken(UserDetails userDetails) {
+        Map<String, Object> extraClaims = new HashMap<>();
+
+        // Grab the first authority (role) from the user
+        String role = userDetails.getAuthorities().iterator().next().getAuthority();
+        extraClaims.put("role", role);
+        
+        // Add the user's name to the token claims
+        if (userDetails instanceof com.backend_1.backend.entities.User) {
+            String name = ((com.backend_1.backend.entities.User) userDetails).getName();
+            extraClaims.put("name", name);
+        }
+
         return Jwts.builder()
-                .subject(email) // Replaces setSubject
+                .claims(extraClaims) // Add the role claim here 🔑
+                .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
-                .signWith(getSignInKey()) // Algorithm is auto-detected
+                .signWith(getSignInKey())
                 .compact();
     }
 
@@ -53,7 +67,6 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration).before(new Date());
     }
 
-    // 3. Helper to convert String key to SecretKey object
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
         return Keys.hmacShaKeyFor(keyBytes);

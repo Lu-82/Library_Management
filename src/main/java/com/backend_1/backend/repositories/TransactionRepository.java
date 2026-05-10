@@ -10,4 +10,7 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
 
     // This helps us find books currently borrowed by a specific user
     List<Transaction> findByUserIdAndReturnDateIsNull(Long userId);
+
+    // This helps us find all transactions for a specific user
+    List<Transaction> findByUserId(Long userId);
 }
